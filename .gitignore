@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Pipeline run outputs (regenerated locally; keep the curated example in sample_data/example_output)
+outputs/batch/
+outputs/*.tif
+outputs/*.png
+!outputs/calibration_table.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Large data — do not commit raw imaging datasets
+*.ims
+RAW_DATA/

@@ -1,0 +1,11 @@
+metric,value
+partition_coefficient,4.8668999376864175
+background,79.0
+condensate_density,319.4554275318375
+dilute_density,65.63838000000001
+n_condensates,10
+n_nuclei,6
+voxel_xy_um,
+voxel_z_um,
+pc_calibrated,4.813024957305394
+construct,JABr

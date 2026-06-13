@@ -1,0 +1,14 @@
+# Condensate Partition Coefficient Pipeline — Python dependencies
+# Tested on Python 3.11, Windows 11 + NVIDIA RTX 4080 (CUDA), and CPU-only.
+#
+# PyTorch: install the build that matches your machine FIRST, from
+# https://pytorch.org/get-started/locally/  (CPU or CUDA), then `pip install -r requirements.txt`.
+
+cellpose>=3.0,<4.0      # Cellpose 3 — nuclei segmentation + denoising (denoise_cyto3, cyto3)
+numpy>=1.24
+pandas>=2.0
+scikit-image>=0.22      # blob_log (Laplacian-of-Gaussian) condensate detection
+scipy>=1.10             # binary_fill_holes, ndimage
+tifffile>=2023.7.10     # read/write OME-TIFF and plain Z-stacks
+matplotlib>=3.7         # summary + validation figures
+# torch / torchvision   # install separately per your CUDA version (see note above)
