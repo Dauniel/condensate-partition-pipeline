@@ -111,6 +111,25 @@ and **Batch**.
 
 *After the run, the Output Log reports the calibrated partition coefficient (here 4.813) and the status reads **Done ✓**.*
 
+### Single-channel mode — segment just one image
+
+Sometimes you have only **one** channel — a condensate image *or* a nuclei image —
+and just want it segmented (e.g. to get masks, object counts, and volumes). Choose
+the third input mode, **"Single channel"**, then pick whether the image is
+**condensate** or **nuclei**:
+
+![GUI single-channel mode](figures/gui_single.png)
+
+- **Nuclei** → segmented with Cellpose `cyto3` (same as the full pipeline).
+- **Condensate** → uses the same detector the full pipeline would (for `JABr`,
+  `blob_log`); since there is no nuclei channel, the intra-nuclear gate is turned
+  off, so **every** detected condensate is kept.
+
+Outputs are `<channel>_masks.tif`, `<channel>_volumes.csv`,
+`<channel>_measurements.csv`, and a `summary.csv` with the object count. **No
+partition coefficient is produced** — the PC needs both a condensate and a nuclei
+channel.
+
 ---
 
 ## 5. Understanding the settings
@@ -203,12 +222,20 @@ Separate channel files instead of one multi-channel TIF:
 python pipeline.py --nuc nuclei.tif --cond condensate.tif --construct JABr --output my_output
 ```
 
+Single-channel segmentation (one image only, no PC):
+
+```bash
+python pipeline.py --single condensate.tif --channel condensate --construct JABr --output my_output
+python pipeline.py --single nuclei.tif    --channel nuclei                       --output my_output
+```
+
 Useful options (run `python pipeline.py -h` for the full list):
 
 | Option | Meaning |
 |---|---|
 | `--roi PATH` | Two-channel TIF (ch0 = nuclei, ch1 = condensate). |
 | `--nuc PATH --cond PATH` | Separate channel files (use instead of `--roi`). |
+| `--single PATH --channel {nuclei,condensate}` | Segment one single-channel image on its own (masks + measurements, no PC). |
 | `--construct JABr` | Selects detector + calibration. |
 | `--output DIR` | Where to save results. |
 | `--voxel-xy 0.065 --voxel-z 0.3` | Physical voxel size, so volumes are reported in µm³. |

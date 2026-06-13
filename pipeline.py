@@ -88,6 +88,9 @@ def parse_args():
     p.add_argument("--roi",         default=None,   type=Path, help="Multi-channel ROI TIF (Z, 2, Y, X): ch0=nuclei, ch1=condensate")
     p.add_argument("--cond",       default=None,   type=Path, help="Condensate channel TIF (required if --roi not given)")
     p.add_argument("--nuc",        default=None,   type=Path, help="Nuclei channel TIF (required if --roi not given)")
+    p.add_argument("--single",     default=None,   type=Path, help="Segment ONE single-channel TIF on its own (no PC). Use with --channel.")
+    p.add_argument("--channel",    default="condensate", choices=["nuclei", "condensate"],
+                                                              help="What the --single image is (default: condensate)")
     p.add_argument("--output",     default=None,   type=Path, help="Output directory")
     p.add_argument("--voxel-xy",   default=None,   type=float, help="XY pixel size in µm")
     p.add_argument("--voxel-z",    default=None,   type=float, help="Z-slice spacing in µm")
@@ -676,6 +679,57 @@ def plot_summary(
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def run_single_channel(args, use_gpu, output_dir):
+    """Segment a single-channel image (nuclei OR condensate) on its own.
+
+    No partition coefficient — that requires both channels. Outputs the 3D
+    instance mask, object count, per-object volumes, and per-slice measurements.
+    Nuclei use Cellpose cyto3; condensate uses the same detector the full
+    pipeline would (construct/--detector), with no intra-nuclear gate.
+    """
+    print(f"\nSingle-channel mode: {args.channel}")
+    stack = tiff.imread(args.single)
+    print(f"  stack: {stack.shape}  dtype={stack.dtype}")
+
+    print("\n[1/3] Denoising...")
+    dn_model = denoise.DenoiseModel(model_type="denoise_cyto3", gpu=use_gpu)
+    restored = denoise_stack(stack, dn_model, args.channel)
+
+    print("\n[2/3] Segmenting...")
+    if args.channel == "nuclei":
+        seg = models.CellposeModel(gpu=use_gpu, model_type="cyto3")
+        masks = segment_nuclei(restored, seg, args.nuc_diameter, args.nuc_cellprob)
+    else:
+        detector = args.detector
+        if detector == "auto":
+            detector = "blob_log" if args.construct == "JABr" else "cellpose"
+        print(f"    condensate detector: {detector}")
+        if detector == "blob_log":
+            # No nucleus channel here, so the intra-nuclear gate is disabled:
+            # an all-true mask keeps every detected blob.
+            all_nuc = np.ones(stack.shape, dtype=bool)
+            masks = detect_condensates_blob(stack, all_nuc, args.blob_threshold,
+                                            args.min_sigma, args.max_sigma, args.num_sigma)
+        else:
+            if args.cond_model is not None:
+                seg = models.CellposeModel(gpu=use_gpu, pretrained_model=str(args.cond_model))
+            else:
+                seg = models.CellposeModel(gpu=use_gpu, model_type="cyto3")
+            masks = segment_condensates(restored, seg, args.diameter, cellprob_threshold=args.cond_cellprob)
+
+    print("\n[3/3] Measuring...")
+    meas = extract_slice_measurements(masks, stack)
+    vol = compute_volumes(masks, args.voxel_xy, args.voxel_z)
+    tiff.imwrite(output_dir / f"{args.channel}_masks.tif", masks)
+    meas.to_csv(output_dir / f"{args.channel}_measurements.csv", index=False)
+    vol.to_csv(output_dir / f"{args.channel}_volumes.csv", index=False)
+    n = int(masks.max())
+    pd.DataFrame([("mode", "single_channel"), ("channel", args.channel), ("n_objects", n)],
+                 columns=["metric", "value"]).to_csv(output_dir / "summary.csv", index=False)
+    print(f"\n  {args.channel}: {n} objects")
+    print(f"All outputs saved to: {output_dir}")
+
+
 def main():
     args = parse_args()
 
@@ -685,8 +739,13 @@ def main():
     use_gpu = core.use_gpu() and not args.no_gpu
     print(f"GPU: {'enabled — ' + torch.cuda.get_device_name(0) if use_gpu else 'disabled'}")
 
+    # Single-channel segmentation mode (no PC).
+    if args.single is not None:
+        run_single_channel(args, use_gpu, output_dir)
+        return
+
     if args.roi is None and (args.cond is None or args.nuc is None):
-        print("Error: provide either --roi or both --cond and --nuc")
+        print("Error: provide either --roi, both --cond and --nuc, or --single")
         raise SystemExit(1)
 
     # Load

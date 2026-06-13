@@ -162,6 +162,14 @@ def build():
                  "The Single-File tab configured for a JABr run: a multi-channel TIF loaded, Construct = JABr.")
     story += fig("gui_done.png", 5.0 * inch,
                  "After the run: the Output Log reports the calibrated partition coefficient and the status reads Done.")
+    story.append(P("<b>Single-channel mode.</b> A third input mode segments just one image — a "
+                   "condensate <i>or</i> a nuclei image — when you do not have both channels. Nuclei "
+                   "use Cellpose cyto3; condensate uses the same detector the full pipeline would "
+                   "(for JABr, blob_log, with the intra-nuclear gate disabled so every detection is "
+                   "kept). It outputs masks, object count, volumes, and measurements — but no "
+                   "partition coefficient, which requires both channels."))
+    story += fig("gui_single.png", 5.0 * inch,
+                 "Single-channel mode: segment one condensate (or nuclei) image on its own.")
 
     # ── Settings ──────────────────────────────────────────────────────────────
     story.append(P("Understanding the settings", H1))
@@ -206,8 +214,10 @@ def build():
                    "correlation, RMSE, and MAE."))
     story.append(P("Command line:"))
     story.append(P("python pipeline.py --roi sample_data/JABr_Sample2_5_3.tif --construct JABr --output my_output", CODE))
-    story.append(P("Separate channels: --nuc nuclei.tif --cond condensate.tif. Physical volumes "
-                   "in µm³: add --voxel-xy 0.065 --voxel-z 0.3. Force CPU: --no-gpu."))
+    story.append(P("Separate channels: --nuc nuclei.tif --cond condensate.tif. Single-channel "
+                   "segmentation (one image, no PC): --single condensate.tif --channel condensate "
+                   "(or --channel nuclei). Physical volumes in µm³: add --voxel-xy 0.065 --voxel-z 0.3. "
+                   "Force CPU: --no-gpu."))
 
     # ── Troubleshooting ───────────────────────────────────────────────────────
     story.append(P("Troubleshooting", H1))

@@ -89,6 +89,16 @@ def main():
     gui._set_status("Done ✓", "#18965C")
     grab(root, FIG / "gui_done.png")
 
+    # Single-channel mode: segment one image (here a condensate-only file)
+    gui._set_status("", "#555555")
+    gui.log.configure(state="normal"); gui.log.delete("1.0", tk.END); gui.log.configure(state="disabled")
+    gui.mode.set("single")
+    gui._toggle_mode()
+    gui.single_ch_entry.delete(0, tk.END)
+    gui.single_ch_entry.insert(0, str(SAMPLE.parent / "condensate_only.tif"))
+    gui.single_ch_type.set("condensate")
+    grab(root, FIG / "gui_single.png")
+
     root.destroy()
 
 

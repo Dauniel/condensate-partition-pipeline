@@ -87,6 +87,14 @@ Expected result for the bundled sample (`JABr_Sample2_5_3.tif`):
 The curated output of this exact run is in
 [`sample_data/example_output/`](sample_data/example_output/) so you can compare.
 
+**Single-channel segmentation** (one image only — nuclei *or* condensate — no PC):
+
+```bash
+python pipeline.py --single condensate.tif --channel condensate --construct JABr --output my_output
+```
+
+In the GUI, this is the **"Single channel"** input mode on the Single File tab.
+
 ---
 
 ## Repository layout

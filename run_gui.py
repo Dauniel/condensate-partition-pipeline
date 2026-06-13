@@ -215,6 +215,9 @@ class PipelineGUI:
         ttk.Radiobutton(mode_card, text="Separate condensate + nuclei files",
                         variable=self.mode, value="split",
                         command=self._toggle_mode).grid(row=1, column=0, sticky="w", pady=2)
+        ttk.Radiobutton(mode_card, text="Single channel — segment one image, nuclei or condensate (no PC)",
+                        variable=self.mode, value="single",
+                        command=self._toggle_mode).grid(row=2, column=0, sticky="w", pady=2)
 
         self.roi_frame   = self._card(p, row=1, title="Multi-Channel TIF")
         self.roi_entry   = self._file_row(self.roi_frame, 0, "TIF file:", "Select TIF")
@@ -223,7 +226,16 @@ class PipelineGUI:
         self.cond_entry  = self._file_row(self.split_frame, 0, "Condensate (Ch2):", "Select condensate TIF")
         self.nuc_entry   = self._file_row(self.split_frame, 1, "Nuclei (Ch1):",     "Select nuclei TIF")
 
-        out_card = self._card(p, row=3, title="Output")
+        self.single_frame  = self._card(p, row=3, title="Single Channel")
+        self.single_ch_entry = self._file_row(self.single_frame, 0, "Image file:", "Select single-channel TIF")
+        ttk.Label(self.single_frame, text="This image is:").grid(row=2, column=0, sticky="w", pady=3)
+        self.single_ch_type = tk.StringVar(value="condensate")
+        ttk.OptionMenu(self.single_frame, self.single_ch_type, "condensate",
+                       "condensate", "nuclei").grid(row=2, column=1, sticky="w", padx=(8, 0))
+        ttk.Label(self.single_frame, text="(segments this one channel; outputs masks + measurements, no PC)",
+                  foreground="#777").grid(row=2, column=2, sticky="w", padx=6)
+
+        out_card = self._card(p, row=4, title="Output")
         self.single_out_entry = self._folder_row(out_card, 0, "Output folder:")
 
     # ── Batch tab ─────────────────────────────────────────────────────────────
@@ -293,12 +305,16 @@ class PipelineGUI:
             entry.insert(0, path)
 
     def _toggle_mode(self):
-        if self.mode.get() == "roi":
+        m = self.mode.get()
+        self.roi_frame.master.grid_remove()
+        self.split_frame.master.grid_remove()
+        self.single_frame.master.grid_remove()
+        if m == "roi":
             self.roi_frame.master.grid()
-            self.split_frame.master.grid_remove()
-        else:
-            self.roi_frame.master.grid_remove()
+        elif m == "split":
             self.split_frame.master.grid()
+        else:
+            self.single_frame.master.grid()
 
     # ── Logging ───────────────────────────────────────────────────────────────
 
@@ -349,6 +365,14 @@ class PipelineGUI:
 
     def _run_single(self, cfg):
         mode = self.mode.get()
+        if mode == "single":
+            path = self.single_ch_entry.get().strip()
+            if not path:
+                self._set_status("Please select an image file.", "#C62828"); return
+            out = self.single_out_entry.get().strip() or None
+            self._start_worker(
+                lambda: self._worker_single_channel(path, self.single_ch_type.get(), out, cfg))
+            return
         if mode == "roi":
             roi = self.roi_entry.get().strip()
             if not roi:
@@ -363,6 +387,72 @@ class PipelineGUI:
 
         out = self.single_out_entry.get().strip() or None
         self._start_worker(lambda: self._worker_single(roi, cond, nuc, out, cfg))
+
+    # ── Single-channel run (one image, nuclei or condensate; no PC) ─────────────
+
+    def _worker_single_channel(self, path, channel, out, cfg):
+        import io, contextlib
+
+        class LogWriter(io.TextIOBase):
+            def __init__(self, gui): self.gui = gui
+            def write(self, s):
+                if s.strip(): self.gui._log(s.rstrip())
+                return len(s)
+
+        import matplotlib
+        matplotlib.use("Agg")
+        with contextlib.redirect_stdout(LogWriter(self)):
+            from pipeline import (denoise_stack, segment_nuclei, segment_condensates,
+                                  detect_condensates_blob, extract_slice_measurements,
+                                  compute_volumes)
+            import numpy as np
+            import pandas as pd
+            import tifffile as tiff
+            from cellpose import models, core, denoise as cp_denoise
+
+            output_dir = Path(out) if out else Path(__file__).parent / "outputs"
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            use_gpu = core.use_gpu() and not cfg["no_gpu"]
+            self._log(f"GPU: {'enabled' if use_gpu else 'disabled'}")
+            self._log(f"Single-channel mode: {channel}  (no partition coefficient)")
+
+            self._log("\n[1/3] Loading + denoising...")
+            stack = tiff.imread(path)
+            self._log(f"  stack {stack.shape}  dtype={stack.dtype}")
+            dn_model = cp_denoise.DenoiseModel(model_type="denoise_cyto3", gpu=use_gpu)
+            restored = denoise_stack(stack, dn_model, channel)
+
+            self._log("\n[2/3] Segmenting...")
+            if channel == "nuclei":
+                seg = models.CellposeModel(gpu=use_gpu, model_type="cyto3")
+                masks = segment_nuclei(restored, seg, None, cfg["cellprob"])
+            else:
+                detector = cfg["detector"]   # already resolved (auto -> blob_log/cellpose)
+                self._log(f"    condensate detector: {detector}")
+                if detector == "blob_log":
+                    # No nucleus channel -> intra-nuclear gate disabled (keep all blobs).
+                    all_nuc = np.ones(stack.shape, dtype=bool)
+                    masks = detect_condensates_blob(stack, all_nuc, cfg["blob_thresh"],
+                                                    1.5, 6.0, 8)
+                else:
+                    if cfg["cond_model"]:
+                        seg = models.CellposeModel(gpu=use_gpu, pretrained_model=cfg["cond_model"])
+                    else:
+                        seg = models.CellposeModel(gpu=use_gpu, model_type="cyto3")
+                    masks = segment_condensates(restored, seg, None, cellprob_threshold=0.0)
+
+            self._log("\n[3/3] Measuring...")
+            meas = extract_slice_measurements(masks, stack)
+            vol = compute_volumes(masks, None, None)
+            tiff.imwrite(output_dir / f"{channel}_masks.tif", masks)
+            meas.to_csv(output_dir / f"{channel}_measurements.csv", index=False)
+            vol.to_csv(output_dir / f"{channel}_volumes.csv", index=False)
+            n = int(masks.max())
+            pd.DataFrame([("mode", "single_channel"), ("channel", channel), ("n_objects", n)],
+                         columns=["metric", "value"]).to_csv(output_dir / "summary.csv", index=False)
+            self._log(f"\n  {channel}: {n} objects detected")
+            self._log(f"All outputs saved to: {output_dir}")
 
     def _worker_single(self, roi, cond, nuc, out, cfg):
         import io, contextlib
