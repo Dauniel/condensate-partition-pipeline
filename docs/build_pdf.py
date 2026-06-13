@@ -99,7 +99,7 @@ def build():
                    ParagraphStyle("lab", parent=BODY, alignment=TA_CENTER, fontSize=12)))
     story.append(P("Author: Daniel Chang", ParagraphStyle("a", parent=BODY,
                    alignment=TA_CENTER, fontSize=11)))
-    story.append(P("Principal Investigator: ____________________",
+    story.append(P("Principal Investigator: Elisa Franco",
                    ParagraphStyle("pi", parent=BODY, alignment=TA_CENTER, fontSize=11,
                                   textColor=MUTED)))
     story.append(Spacer(1, 0.3 * inch))

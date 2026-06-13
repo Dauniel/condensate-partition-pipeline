@@ -137,7 +137,7 @@ def build():
                    ParagraphStyle("lab", parent=SUBTITLE, fontSize=13)))
     story.append(Spacer(1, 0.15 * inch))
     story.append(P("Author: Daniel Chang", ParagraphStyle("a", parent=SUBTITLE, fontSize=12)))
-    story.append(P("Principal Investigator: ______________________",
+    story.append(P("Principal Investigator: Elisa Franco",
                    ParagraphStyle("pi", parent=SUBTITLE, fontSize=12)))
     story.append(Spacer(1, 0.3 * inch))
     story.append(P("Spring 2026", ParagraphStyle("d", parent=SUBTITLE, fontSize=11)))

@@ -1,7 +1,7 @@
 # Instruction Manual — Condensate Partition Coefficient Pipeline
 
 **Franco Lab · UCLA · Spring 2026**
-Author: Daniel Chang
+Author: Daniel Chang · Principal Investigator: Elisa Franco
 
 This manual explains how to install, run, and interpret the condensate
 partition-coefficient pipeline using either the **graphical interface (GUI)** or

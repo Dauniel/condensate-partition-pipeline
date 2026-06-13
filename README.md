@@ -6,7 +6,7 @@ replacement for the manual Imaris workflow.
 
 > **Franco Lab · UCLA · Spring 2026**
 > Author: Daniel Chang
-> Principle Investigator: Elisa Franco
+> Principal Investigator: Elisa Franco
 
 | | |
 |---|---|
