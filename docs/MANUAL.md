@@ -89,8 +89,9 @@ python run_gui.py
 A window titled **"Condensate Pipeline"** opens with two tabs: **Single File**
 and **Batch**.
 
-> 📷 *Screenshot placeholder:* `docs/figures/gui_main.png`
-> *(Run the GUI and capture the main window. See the note at the end of this section.)*
+![GUI main window configured for a JABr run](figures/gui_main.png)
+
+*The Single File tab with a multi-channel TIF loaded and Construct = JABr.*
 
 ### Step-by-step (single cell)
 
@@ -106,14 +107,9 @@ and **Batch**.
    through the 6 steps. The status turns **"Done ✓"** when finished.
 6. Open your output folder to see the masks, tables, and `results.png`.
 
-> 📷 *Screenshot placeholders:* `docs/figures/gui_running.png` (log mid-run),
-> `docs/figures/gui_done.png` (finished with the PC printed).
+![GUI after a completed run](figures/gui_done.png)
 
-> **Capturing the screenshots:** because the GUI is an interactive window, the
-> three screenshots above must be captured on the machine where you run it
-> (Windows: `Win+Shift+S`). Save them into `docs/figures/` with the names above
-> and they will appear here automatically. Until then, the real numerical output
-> is shown in section 6 from an actual run.
+*After the run, the Output Log reports the calibrated partition coefficient (here 4.813) and the status reads **Done ✓**.*
 
 ---
 

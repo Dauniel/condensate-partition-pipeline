@@ -13,9 +13,8 @@
 \usepackage{ragged2e}
 \usepackage{titlesec}
 \usepackage{fancyhdr}
-\usepackage[hidelinks]{hyperref}      % clickable links, no annotation box
+\usepackage[hidelinks]{hyperref}      % clickable links, black, no box/underline
 \usepackage{bookmark}                 % PDF outline / sidebar bookmarks
-\usepackage[normalem]{ulem}           % physical underline (renders in every viewer)
 \setcounter{secnumdepth}{2}           % number sections + subsections
 \setcounter{tocdepth}{2}              % list sections + subsections in the TOC
 \graphicspath{{figures/}}
@@ -54,13 +53,7 @@
 {Spring 2026\par}
 \end{titlepage}
 
-% Underline the linked text of each TOC entry (black, clickable, no box).
-\makeatletter
-\let\stdcontentsline\contentsline
-\renewcommand{\contentsline}[4]{\stdcontentsline{#1}{\uline{#2}}{#3}{#4}}
-\makeatother
 \tableofcontents
-\makeatletter\let\contentsline\stdcontentsline\makeatother
 \newpage
 
 \section{Part I --- User Manual}
@@ -101,6 +94,15 @@ tabs opens.
 \item Click \textbf{Run Pipeline}. Progress streams in the Output Log; the status reads \textbf{Done} when finished.
 \item Open your output folder for the masks, tables, and \code{results.png}.
 \end{enumerate}
+
+\begin{center}
+\includegraphics[width=0.78\textwidth]{gui_main.png}\\
+{\small The Single-File tab configured for a JABr run: a multi-channel TIF loaded, Construct = JABr.}
+\end{center}
+\begin{center}
+\includegraphics[width=0.78\textwidth]{gui_done.png}\\
+{\small After the run: the Output Log reports the calibrated partition coefficient and the status reads Done.}
+\end{center}
 
 \subsection{Settings}
 For routine JABr analysis you only need to set \textbf{Construct}; the rest have sensible defaults.

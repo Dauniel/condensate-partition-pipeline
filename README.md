@@ -68,6 +68,8 @@ python run_gui.py
 3. Click **▶ Run Pipeline**. Results stream to the log and are saved to your
    chosen output folder.
 
+![GUI](docs/figures/gui_main.png)
+
 Full walkthrough with screenshots: **[docs/MANUAL.md](docs/MANUAL.md)**.
 
 ### Option B — CLI (one bundled sample included)

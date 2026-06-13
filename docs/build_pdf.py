@@ -158,10 +158,10 @@ def build():
                    "4. Click <b>▶ Run Pipeline</b>. Progress streams in the Output Log; the "
                    "status reads <b>Done</b> when finished.<br/>"
                    "5. Open your output folder for the masks, tables, and results.png."))
-    story.append(P("Live GUI screenshots should be captured on the machine where it runs "
-                   "(Windows: Win+Shift+S) and saved into docs/figures/. The actual numerical "
-                   "output of a real run is shown under “Reading the outputs.”",
-                   ParagraphStyle("note", parent=BODY, textColor=MUTED, fontSize=9.3)))
+    story += fig("gui_main.png", 5.0 * inch,
+                 "The Single-File tab configured for a JABr run: a multi-channel TIF loaded, Construct = JABr.")
+    story += fig("gui_done.png", 5.0 * inch,
+                 "After the run: the Output Log reports the calibrated partition coefficient and the status reads Done.")
 
     # ── Settings ──────────────────────────────────────────────────────────────
     story.append(P("Understanding the settings", H1))

@@ -7,6 +7,7 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{array}
+\usepackage{amssymb}
 \usepackage{xcolor}
 \usepackage{titlesec}
 \usepackage{enumitem}
@@ -119,12 +120,14 @@ streams in the \textbf{Output Log}; the status reads \textbf{Done} when finished
 \item Open your output folder for the masks, tables, and \code{results.png}.
 \end{enumerate}
 
-\begin{quote}\color{muted}\small
-\textit{Screenshots of the live GUI (\code{gui\_main.png}, \code{gui\_running.png},
-\code{gui\_done.png}) should be captured on the machine where it runs
-(Windows: \code{Win+Shift+S}) and placed in \code{docs/figures/}. The actual
-numerical output of a real run is shown in Section~6.}
-\end{quote}
+\begin{center}
+\includegraphics[width=0.82\textwidth]{gui_main.png}\\
+{\small The Single-File tab configured for a JABr run: a multi-channel TIF loaded, Construct = JABr.}
+\end{center}
+\begin{center}
+\includegraphics[width=0.82\textwidth]{gui_done.png}\\
+{\small After the run: the Output Log reports the calibrated partition coefficient and the status reads Done.}
+\end{center}
 
 % ─── Settings ─────────────────────────────────────────────────────────────────
 \section{Understanding the settings}
