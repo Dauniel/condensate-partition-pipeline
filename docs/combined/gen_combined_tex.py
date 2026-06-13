@@ -96,8 +96,9 @@ def main():
 \usepackage{ragged2e}
 \usepackage{titlesec}
 \usepackage{fancyhdr}
-\usepackage[hidelinks]{hyperref}
+\usepackage[hidelinks]{hyperref}      % clickable links, no annotation box
 \usepackage{bookmark}                 % PDF outline / sidebar bookmarks
+\usepackage[normalem]{ulem}           % physical underline (renders in every viewer)
 \setcounter{secnumdepth}{2}           % number sections + subsections
 \setcounter{tocdepth}{2}              % list sections + subsections in the TOC
 \graphicspath{{figures/}}
@@ -136,7 +137,13 @@ def main():
 {Spring 2026\par}
 \end{titlepage}
 
+% Underline the linked text of each TOC entry (black, clickable, no box).
+\makeatletter
+\let\stdcontentsline\contentsline
+\renewcommand{\contentsline}[4]{\stdcontentsline{#1}{\uline{#2}}{#3}{#4}}
+\makeatother
 \tableofcontents
+\makeatletter\let\contentsline\stdcontentsline\makeatother
 \newpage
 """)
 
