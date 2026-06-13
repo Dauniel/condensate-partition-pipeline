@@ -134,6 +134,8 @@ def main():
 {\large Principal Investigator: Elisa Franco\par}
 \vspace{0.8cm}
 {Spring 2026\par}
+\vspace{0.7cm}
+{\small Repository:\\ \url{https://github.com/Dauniel/condensate-partition-pipeline}\par}
 \end{titlepage}
 
 \tableofcontents
