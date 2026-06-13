@@ -97,6 +97,9 @@ def main():
 \usepackage{titlesec}
 \usepackage{fancyhdr}
 \usepackage[hidelinks]{hyperref}
+\usepackage{bookmark}                 % PDF outline / sidebar bookmarks
+\setcounter{secnumdepth}{2}           % number sections + subsections
+\setcounter{tocdepth}{2}              % list sections + subsections in the TOC
 \graphicspath{{figures/}}
 
 \titleformat{\section}{\Large\bfseries}{\thesection}{0.6em}{}
@@ -332,7 +335,7 @@ retraining with a handful of labeled ROIs of the new construct --- far cheaper t
     A(r"\section{Part III --- Research Timeline}")
     A("A chronological record of how the pipeline was built. Dates are from the project's version-control history.\n")
     for title, items in timeline:
-        A(r"\subsection*{%s}" % title)
+        A(r"\subsection{%s}" % title)
         A(r"\begin{center}")
         A(r"\begin{tabular}{>{\RaggedRight}p{2cm} >{\RaggedRight}p{11.5cm}}")
         A(r"\toprule")
@@ -343,7 +346,7 @@ retraining with a handful of labeled ROIs of the new construct --- far cheaper t
         A(r"\bottomrule")
         A(r"\end{tabular}")
         A(r"\end{center}")
-    A(r"""\subsection*{Where it stands}
+    A(r"""\subsection{Where it stands}
 Validated, production-ready for JABr ($r = 0.942$, MAE 12.9\%, 79\% of cells within
 $\pm 20\%$, n = 28). Delivered: a CLI, a GUI for non-coding lab use, per-construct
 calibration, and full documentation. Known boundary, with a plan: the detector is
@@ -358,14 +361,14 @@ manual Imaris measurements (nuclear and cytoplasmic) are the ground truth agains
 pipeline is validated; the pipeline results table is the production \code{blob\_log} V4 output
 (sphere-overlap gate, linear calibration).
 """)
-    A(r"\subsection*{Manual reference --- Nuclear (n = 30)}")
+    A(r"\subsection{Manual reference --- Nuclear (n = 30)}")
     A(longtable(["File", "Condensate Density", "Dilute Density", "Partition Coefficient"],
                 nuclear, "l r r r"))
-    A(r"\subsection*{Manual reference --- Cytoplasmic (n = 30)}")
+    A(r"\subsection{Manual reference --- Cytoplasmic (n = 30)}")
     A(longtable(["File", "Condensate Density", "Dilute Density", "Partition Coefficient"],
                 cyto, "l r r r"))
 
-    A(r"\subsection*{Pipeline results --- Nuclear (blob\_log V4, sphere-overlap gate)}")
+    A(r"\subsection{Pipeline results --- Nuclear (blob\_log V4, sphere-overlap gate)}")
     A(r"""Detector \code{blob\_log} (threshold 0.03, $\sigma$ 1.5--6.0); nuclei via Cellpose
 \code{cyto3} with void-filling; intra-nuclear gate $\geq 50\%$ sphere overlap; calibration
 $0.3642 \cdot \mathrm{raw} + 3.0405$. n = 28 (Sample3\_3\_10 and Sample3\_3\_15 find 0
@@ -376,7 +379,7 @@ intra-nuclear condensates and are excluded).
     A(r"""\vspace{0.5em}
 \textbf{Summary:} n = 28, mean $|\text{err}|$ = 13.7\%, 22/28 within $\pm 20\%$, Pearson $r = 0.942$.
 
-\subsubsection*{Notable failures ($>25\%$ error)}
+\subsubsection{Notable failures ($>25\%$ error)}
 \begin{itemize}\setlength{\itemsep}{1pt}
 \item \textbf{Sample1\_2\_3 ($+63\%$):} smallest reference PC (2.55); the linear calibration
 floor (intercept $\sim$3.0) dominates, so the percentage error is large though the absolute
@@ -389,7 +392,7 @@ to the reference PC; not fixed by the gate.
 \newpage
 """)
 
-    A(r"""\subsection*{Visual panels (representative)}
+    A(r"""\subsection{Visual panels (representative)}
 Per-ROI max-intensity Z-projection panels: merged reference (nuclei/condensate) $|$ nuclei
 channel $|$ condensate channel $|$ pipeline nuclei mask $|$ pipeline condensate mask $|$
 reference (Imaris) condensate mask $|$ classification overlay. A representative subset is

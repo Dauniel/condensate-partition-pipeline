@@ -14,6 +14,9 @@
 \usepackage{titlesec}
 \usepackage{fancyhdr}
 \usepackage[hidelinks]{hyperref}
+\usepackage{bookmark}                 % PDF outline / sidebar bookmarks
+\setcounter{secnumdepth}{2}           % number sections + subsections
+\setcounter{tocdepth}{2}              % list sections + subsections in the TOC
 \graphicspath{{figures/}}
 
 \titleformat{\section}{\Large\bfseries}{\thesection}{0.6em}{}
@@ -218,7 +221,7 @@ retraining with a handful of labeled ROIs of the new construct --- far cheaper t
 \section{Part III --- Research Timeline}
 A chronological record of how the pipeline was built. Dates are from the project's version-control history.
 
-\subsection*{Winter 2026 --- Foundation}
+\subsection{Winter 2026 --- Foundation}
 \begin{center}
 \begin{tabular}{>{\RaggedRight}p{2cm} >{\RaggedRight}p{11.5cm}}
 \toprule
@@ -229,7 +232,7 @@ A chronological record of how the pipeline was built. Dates are from the project
 \bottomrule
 \end{tabular}
 \end{center}
-\subsection*{April 2026 --- Segmentation survey \& the PC formula}
+\subsection{April 2026 --- Segmentation survey \& the PC formula}
 \begin{center}
 \begin{tabular}{>{\RaggedRight}p{2cm} >{\RaggedRight}p{11.5cm}}
 \toprule
@@ -241,7 +244,7 @@ A chronological record of how the pipeline was built. Dates are from the project
 \bottomrule
 \end{tabular}
 \end{center}
-\subsection*{May 2026 --- Calibration, GUI, generalization}
+\subsection{May 2026 --- Calibration, GUI, generalization}
 \begin{center}
 \begin{tabular}{>{\RaggedRight}p{2cm} >{\RaggedRight}p{11.5cm}}
 \toprule
@@ -256,7 +259,7 @@ A chronological record of how the pipeline was built. Dates are from the project
 \bottomrule
 \end{tabular}
 \end{center}
-\subsection*{June 2026 --- Production hardening \& honest scope}
+\subsection{June 2026 --- Production hardening \& honest scope}
 \begin{center}
 \begin{tabular}{>{\RaggedRight}p{2cm} >{\RaggedRight}p{11.5cm}}
 \toprule
@@ -269,7 +272,7 @@ A chronological record of how the pipeline was built. Dates are from the project
 \bottomrule
 \end{tabular}
 \end{center}
-\subsection*{Where it stands}
+\subsection{Where it stands}
 Validated, production-ready for JABr ($r = 0.942$, MAE 12.9\%, 79\% of cells within
 $\pm 20\%$, n = 28). Delivered: a CLI, a GUI for non-coding lab use, per-construct
 calibration, and full documentation. Known boundary, with a plan: the detector is
@@ -282,7 +285,7 @@ manual Imaris measurements (nuclear and cytoplasmic) are the ground truth agains
 pipeline is validated; the pipeline results table is the production \code{blob\_log} V4 output
 (sphere-overlap gate, linear calibration).
 
-\subsection*{Manual reference --- Nuclear (n = 30)}
+\subsection{Manual reference --- Nuclear (n = 30)}
 \begin{center}
 \begin{longtable}{l r r r}
 \toprule
@@ -327,7 +330,7 @@ Sample3\_3\_14 & 907.64 & 69.99 & 12.969 \\
 Sample3\_3\_15 & 426.20 & 66.50 & 6.409 \\
 \end{longtable}
 \end{center}
-\subsection*{Manual reference --- Cytoplasmic (n = 30)}
+\subsection{Manual reference --- Cytoplasmic (n = 30)}
 \begin{center}
 \begin{longtable}{l r r r}
 \toprule
@@ -372,7 +375,7 @@ Sample3\_3\_14 & 212.48 & 66.59 & 3.191 \\
 Sample3\_3\_15 & 110.00 & 67.56 & 1.628 \\
 \end{longtable}
 \end{center}
-\subsection*{Pipeline results --- Nuclear (blob\_log V4, sphere-overlap gate)}
+\subsection{Pipeline results --- Nuclear (blob\_log V4, sphere-overlap gate)}
 Detector \code{blob\_log} (threshold 0.03, $\sigma$ 1.5--6.0); nuclei via Cellpose
 \code{cyto3} with void-filling; intra-nuclear gate $\geq 50\%$ sphere overlap; calibration
 $0.3642 \cdot \mathrm{raw} + 3.0405$. n = 28 (Sample3\_3\_10 and Sample3\_3\_15 find 0
@@ -423,7 +426,7 @@ Sample3\_3\_9 & 482.8 & 49.6 & 90 & 9.73 & 6.58 & 5.92 & 11.2\% \\
 \vspace{0.5em}
 \textbf{Summary:} n = 28, mean $|\text{err}|$ = 13.7\%, 22/28 within $\pm 20\%$, Pearson $r = 0.942$.
 
-\subsubsection*{Notable failures ($>25\%$ error)}
+\subsubsection{Notable failures ($>25\%$ error)}
 \begin{itemize}\setlength{\itemsep}{1pt}
 \item \textbf{Sample1\_2\_3 ($+63\%$):} smallest reference PC (2.55); the linear calibration
 floor (intercept $\sim$3.0) dominates, so the percentage error is large though the absolute
@@ -435,7 +438,7 @@ to the reference PC; not fixed by the gate.
 \end{itemize}
 \newpage
 
-\subsection*{Visual panels (representative)}
+\subsection{Visual panels (representative)}
 Per-ROI max-intensity Z-projection panels: merged reference (nuclei/condensate) $|$ nuclei
 channel $|$ condensate channel $|$ pipeline nuclei mask $|$ pipeline condensate mask $|$
 reference (Imaris) condensate mask $|$ classification overlay. A representative subset is
