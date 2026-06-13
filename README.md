@@ -5,7 +5,8 @@ their **partition coefficient (PC)** from confocal Z-stacks — a from-scratch
 replacement for the manual Imaris workflow.
 
 > **Franco Lab · UCLA · Spring 2026**
-> Author: Daniel Chang · ⟨confirm PI name for the manual cover⟩
+> Author: Daniel Chang
+> Principle Investigator: Elisa Franco
 
 | | |
 |---|---|
