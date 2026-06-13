@@ -8,10 +8,36 @@ Run:  python docs/combined/gen_combined_tex.py
 Out:  docs/combined/combined_report.tex   (compile with pdfLaTeX)
 """
 from pathlib import Path
-from build_combined_pdf import parse_note_tables   # reuse the same parser
 
 HERE = Path(__file__).parent
 OUT = HERE / "combined_report.tex"
+NOTE = Path(r"C:\storage\code\research\Research\reference_data\JABr Reference Data.md")
+
+
+def parse_note_tables():
+    """Return {section_title: [ [cells...], ... ]} for every markdown table in the note."""
+    text = NOTE.read_text(encoding="utf-8")
+    sections, cur, rows = {}, None, []
+    for line in text.splitlines():
+        if line.startswith("## "):
+            if cur and rows:
+                sections.setdefault(cur, []).append(rows)
+            cur, rows = line[3:].strip(), []
+            continue
+        s = line.strip()
+        if s.startswith("|"):
+            s2 = s.replace(r"\|", "\x00")                      # protect escaped pipes
+            cells = [c.strip().replace("\x00", "|") for c in s2.strip("|").split("|")]
+            if set("".join(cells)) <= set("-: "):              # separator row
+                continue
+            rows.append(cells)
+        else:
+            if cur and rows:
+                sections.setdefault(cur, []).append(rows)
+                rows = []
+    if cur and rows:
+        sections.setdefault(cur, []).append(rows)
+    return sections
 
 
 def esc(s):
@@ -60,6 +86,7 @@ def main():
 % Overleaf and press Recompile). Figures are expected in ./figures.
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
 \usepackage{mathptmx}            % Times serif — clean, no color
 \usepackage[T1]{fontenc}
 \usepackage{graphicx}
@@ -77,6 +104,7 @@ def main():
 \titleformat{\subsubsection}{\normalsize\bfseries}{}{0em}{}
 \setlength{\parskip}{0.5em}
 \setlength{\parindent}{0pt}
+\setlength{\emergencystretch}{3em}   % absorb long unbreakable code tokens in justified text
 \newcommand{\code}[1]{\texttt{\small #1}}
 
 \pagestyle{fancy}\fancyhf{}
@@ -126,7 +154,7 @@ reference scale. It runs from a point-and-click graphical interface or the comma
 \subsection{Installation (one time)}
 Install Python 3.10 or 3.11, then install PyTorch for your machine (CPU or your CUDA
 version) from \href{https://pytorch.org/get-started/locally/}{pytorch.org}. Example for CUDA 12.1:
-\begin{quote}\code{pip install torch -{}-index-url https://download.pytorch.org/whl/cu121}\end{quote}
+\begin{quote}\ttfamily\small pip install torch -{}-index-url\\ \hspace*{1.5em}https://download.pytorch.org/whl/cu121\end{quote}
 Then install the remaining dependencies:
 \begin{quote}\code{pip install -r requirements.txt}\end{quote}
 On first run, Cellpose downloads its model weights automatically (one-time
@@ -183,7 +211,7 @@ over the raw channel in Fiji/ImageJ to catch the rare misfire.
 \end{center}
 
 \subsection{Command line}
-\begin{quote}\code{python pipeline.py -{}-roi sample\_data/JABr\_Sample2\_5\_3.tif -{}-construct JABr -{}-output my\_output}\end{quote}
+\begin{quote}\ttfamily\small python pipeline.py -{}-roi sample\_data/JABr\_Sample2\_5\_3.tif\\ \hspace*{1.5em}-{}-construct JABr -{}-output my\_output\end{quote}
 Separate channels: \code{-{}-nuc nuclei.tif -{}-cond condensate.tif}. Physical volumes in
 $\mu m^3$: add \code{-{}-voxel-xy 0.065 -{}-voxel-z 0.3}. Force CPU: \code{-{}-no-gpu}. For
 many files (and optional comparison vs a manual reference CSV), use the GUI \textbf{Batch} tab.

@@ -3,6 +3,7 @@
 % Overleaf and press Recompile). Figures are expected in ./figures.
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
 \usepackage{mathptmx}            % Times serif — clean, no color
 \usepackage[T1]{fontenc}
 \usepackage{graphicx}
@@ -20,6 +21,7 @@
 \titleformat{\subsubsection}{\normalsize\bfseries}{}{0em}{}
 \setlength{\parskip}{0.5em}
 \setlength{\parindent}{0pt}
+\setlength{\emergencystretch}{3em}   % absorb long unbreakable code tokens in justified text
 \newcommand{\code}[1]{\texttt{\small #1}}
 
 \pagestyle{fancy}\fancyhf{}
@@ -67,7 +69,7 @@ reference scale. It runs from a point-and-click graphical interface or the comma
 \subsection{Installation (one time)}
 Install Python 3.10 or 3.11, then install PyTorch for your machine (CPU or your CUDA
 version) from \href{https://pytorch.org/get-started/locally/}{pytorch.org}. Example for CUDA 12.1:
-\begin{quote}\code{pip install torch -{}-index-url https://download.pytorch.org/whl/cu121}\end{quote}
+\begin{quote}\ttfamily\small pip install torch -{}-index-url\\ \hspace*{1.5em}https://download.pytorch.org/whl/cu121\end{quote}
 Then install the remaining dependencies:
 \begin{quote}\code{pip install -r requirements.txt}\end{quote}
 On first run, Cellpose downloads its model weights automatically (one-time
@@ -124,7 +126,7 @@ over the raw channel in Fiji/ImageJ to catch the rare misfire.
 \end{center}
 
 \subsection{Command line}
-\begin{quote}\code{python pipeline.py -{}-roi sample\_data/JABr\_Sample2\_5\_3.tif -{}-construct JABr -{}-output my\_output}\end{quote}
+\begin{quote}\ttfamily\small python pipeline.py -{}-roi sample\_data/JABr\_Sample2\_5\_3.tif\\ \hspace*{1.5em}-{}-construct JABr -{}-output my\_output\end{quote}
 Separate channels: \code{-{}-nuc nuclei.tif -{}-cond condensate.tif}. Physical volumes in
 $\mu m^3$: add \code{-{}-voxel-xy 0.065 -{}-voxel-z 0.3}. Force CPU: \code{-{}-no-gpu}. For
 many files (and optional comparison vs a manual reference CSV), use the GUI \textbf{Batch} tab.
