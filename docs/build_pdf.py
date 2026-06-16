@@ -117,9 +117,10 @@ def build():
     story.append(tbl([
         ["Item", "Description"],
         ["Inputs", "Two-channel Z-stack: channel 0 = nuclei, channel 1 = condensate."],
-        ["Outputs", "Nuclear & cytoplasmic PC, 3D masks, per-object volumes, summary figure."],
+        ["Outputs", "Nuclear & cytoplasmic PC, 3D masks, per-object volumes, summary figure, "
+         "interactive zviewer.html."],
         ["Validated on", "JABr: Pearson r = 0.942, MAE 12.9%, 79% of cells within ±20% (n = 28)."],
-        ["Interfaces", "Graphical (run_gui.py) or command line (pipeline.py)."],
+        ["Interfaces", "Web app (webapp.py), desktop GUI (run_gui.py), or command line (pipeline.py)."],
     ], [1.4 * inch, 4.7 * inch]))
     story.append(Spacer(1, 10))
     story += fig("jabr_validation.png", width=3.9 * inch,
@@ -145,9 +146,23 @@ def build():
                    "(ZCYX, CZYX, ...) are auto-detected. If results look wrong, swapped "
                    "channels are the most common cause."))
 
+    # ── Web app ─────────────────────────────────────────────────────────────────
+    story.append(P("Running with the web app", H1))
+    story.append(P("The web app is the most integrated interface: configure, run, and view "
+                   "results in a single browser page, for both single cells and whole batches. "
+                   "Launch with <font face='Courier'>python webapp.py</font>; it opens "
+                   "http://127.0.0.1:5000 automatically. Pick an input (single TIF, separate "
+                   "channels, single-channel, or a batch folder) using the in-page file browser, "
+                   "set Construct = JABr, and click Run Pipeline. Progress streams live, and the "
+                   "interactive Z-viewer loads in the right-hand panel when the run finishes. In "
+                   "batch mode each cell becomes a clickable chip showing its calibrated PC; "
+                   "clicking it loads that cell's viewer, and r / RMSE / MAE appear when a "
+                   "reference CSV is supplied."))
+
     # ── GUI ─────────────────────────────────────────────────────────────────────
-    story.append(P("Running with the graphical interface", H1))
-    story.append(P("Launch with <font face='Courier'>python run_gui.py</font>. A window with "
+    story.append(P("Running with the graphical interface (desktop)", H1))
+    story.append(P("A native desktop alternative to the web app. Launch with "
+                   "<font face='Courier'>python run_gui.py</font>. A window with "
                    "<b>Single File</b> and <b>Batch</b> tabs opens."))
     story.append(P("Step by step (single cell)", H2))
     story.append(P("1. On the <b>Single File</b> tab, choose the input mode and Browse to your "
@@ -187,6 +202,8 @@ def build():
          "Leave at 0.03 for JABr."],
         ["Cellpose cond. model", "(blank)", "Advanced; a fine-tuned condensate model. Leave blank for JABr."],
         ["Disable GPU", "off", "Tick on a laptop with no NVIDIA GPU."],
+        ["Write interactive Z-viewer", "on", "Writes a self-contained zviewer.html for scrolling the "
+         "Z-stack in a browser. Untick to skip."],
     ], [1.5 * inch, 0.75 * inch, 3.85 * inch]))
     story.append(Spacer(1, 6))
     story.append(P("<b>The one rule for routine use:</b> set Construct = JABr and run. Everything "
@@ -196,7 +213,14 @@ def build():
     story.append(P("Reading the outputs", H1))
     story.append(P("Every run writes summary.csv (headline numbers incl. the calibrated PC), "
                    "results.png (summary figure), condensate_masks.tif and nuclei_masks.tif "
-                   "(3D labeled masks), and per-object/per-slice CSVs."))
+                   "(3D labeled masks), per-object/per-slice CSVs, and zviewer.html."))
+    story.append(P("<b>The interactive Z-viewer (zviewer.html).</b> Double-click it to open in any "
+                   "browser — it is self-contained (no Python, no internet) and shareable. Drag the "
+                   "slider or use the arrow keys to scroll Z-slices. For each slice it shows four "
+                   "panels (raw; masks-on-raw with nuclei = magenta, condensate = yellow outlines; "
+                   "condensate mask; nuclei mask), the partition coefficient and stack summary, "
+                   "live per-slice counts/areas/intensities, and two in-mask intensity histograms "
+                   "(current slice and whole stack). In batch mode each cell gets its own viewer."))
     story.append(P("For the bundled sample JABr_Sample2_5_3.tif, a real run produces "
                    "<b>nuclear PC raw 4.867 → calibrated 4.813</b> (manual reference 4.558, +5.6%)."))
     story.append(P("<b>Report the calibrated nuclear PC.</b> The raw value is systematically "
@@ -217,7 +241,7 @@ def build():
     story.append(P("Separate channels: --nuc nuclei.tif --cond condensate.tif. Single-channel "
                    "segmentation (one image, no PC): --single condensate.tif --channel condensate "
                    "(or --channel nuclei). Physical volumes in µm³: add --voxel-xy 0.065 --voxel-z 0.3. "
-                   "Force CPU: --no-gpu."))
+                   "Also write the interactive viewer: --view. Force CPU: --no-gpu."))
 
     # ── Troubleshooting ───────────────────────────────────────────────────────
     story.append(P("Troubleshooting", H1))

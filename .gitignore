@@ -7,9 +7,8 @@ venv/
 .ipynb_checkpoints/
 
 # Pipeline run outputs (regenerated locally; keep the curated example in sample_data/example_output)
-outputs/batch/
-outputs/*.tif
-outputs/*.png
+# Ignore everything under outputs/ except the committed calibration table.
+outputs/*
 !outputs/calibration_table.json
 
 # OS / editor

@@ -11,9 +11,9 @@ replacement for the manual Imaris workflow.
 | | |
 |---|---|
 | **Inputs** | A two-channel confocal Z-stack (channel 0 = nuclei, channel 1 = condensate) |
-| **Outputs** | Nuclear & cytoplasmic PC, 3D condensate/nuclei masks, per-object volumes, a summary figure |
+| **Outputs** | Nuclear & cytoplasmic PC, 3D condensate/nuclei masks, per-object volumes, a summary figure, and an interactive `zviewer.html` |
 | **Validated on** | **JABr** construct: Pearson **r = 0.942**, MAE **12.9 %**, **79 %** of cells within ±20 % of the manual reference (n = 28) |
-| **Interfaces** | Point-and-click **GUI** (`run_gui.py`) or scriptable **CLI** (`pipeline.py`) |
+| **Interfaces** | Unified **web app** (`webapp.py`), point-and-click **GUI** (`run_gui.py`), or scriptable **CLI** (`pipeline.py`) |
 
 ![JABr validation](docs/figures/jabr_validation.png)
 
@@ -56,7 +56,20 @@ first run. A GPU is recommended (~10–15 s/cell); CPU works but is slower.
 
 ## Quickstart
 
-### Option A — GUI (recommended for lab use)
+### Option A — Web app (configure, run, and view in one page)
+
+```bash
+python webapp.py
+```
+
+Opens `http://127.0.0.1:5000` in your browser. Pick an input (single TIF, separate
+channels, single-channel, or a **batch** folder), set **Construct = JABr**, and
+click **▶ Run Pipeline**. Progress streams live and the interactive Z-viewer loads
+**in the same page** when the run finishes. In batch mode each cell becomes a chip
+you can click to load its viewer. This is the most integrated experience and is
+built on the same `zviewer.html` described below.
+
+### Option B — Tkinter GUI (desktop window)
 
 ```bash
 python run_gui.py
@@ -66,17 +79,22 @@ python run_gui.py
 2. **Settings** → set **Construct = JABr** (this auto-selects the `blob_log`
    detector and the JABr calibration).
 3. Click **▶ Run Pipeline**. Results stream to the log and are saved to your
-   chosen output folder.
+   chosen output folder — including an interactive **`zviewer.html`** you can
+   open in any browser to scroll through the Z-stack (raw, mask overlays,
+   per-slice stats, and intensity histograms).
 
 ![GUI](docs/figures/gui_main.png)
 
 Full walkthrough with screenshots: **[docs/MANUAL.md](docs/MANUAL.md)**.
 
-### Option B — CLI (one bundled sample included)
+### Option C — CLI (one bundled sample included)
 
 ```bash
 python pipeline.py --roi sample_data/JABr_Sample2_5_3.tif --construct JABr --output my_output
 ```
+
+Add `--view` to also write an interactive `zviewer.html` (scroll the Z-stack in
+a browser; one is written per cell in batch mode).
 
 Expected result for the bundled sample (`JABr_Sample2_5_3.tif`):
 
@@ -100,7 +118,9 @@ In the GUI, this is the **"Single channel"** input mode on the Single File tab.
 ## Repository layout
 
 ```
-pipeline.py                 Core pipeline + CLI (load → denoise → segment → measure PC)
+pipeline.py                 Core pipeline + CLI (load → denoise → segment → measure PC → zviewer.html)
+webapp.py                   Unified web app (Flask): config + run + embedded Z-viewer, single & batch
+templates/index.html        Web-app front-end (single-page UI)
 run_gui.py                  Tkinter GUI (Single File + Batch tabs)
 outputs/calibration_table.json   Per-construct calibration (raw PC → reference scale)
 sample_data/

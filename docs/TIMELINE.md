@@ -64,6 +64,8 @@ the method is **construct-specific**.
 | 2026-06-11 | V4 cross-construct test confirms construct-specificity (JABr 0.94, GABr 0.68, AABr/AwtBr/GwtBr fail). |
 | 2026-06-12 | **Leave-one-construct-out experiment**: a single learned detector does not generalize zero-shot (fails by under-detection). Mapped the few-shot path to extend beyond JABr. |
 | 2026-06-13 | Clean public release: this repository, instruction manual, and methods writeup. |
+| 2026-06-16 | **Interactive `zviewer.html`** added (CLI `--view`, GUI checkbox, per-cell in batch): a self-contained Z-stack browser with raw/overlay/mask panels, stack + per-slice stats, the PC, and live intensity histograms. Mask overlay restyled (magenta/yellow) for legibility. Tested an opt-in nuclei `--nuc-close` knob for open-bay voids — left off by default (does not fix wide notches, would need re-calibration). |
+| 2026-06-16 | **Unified web app (`webapp.py`, Flask)**: configure, run, and view in one browser page, single **and** batch, with the Z-viewer embedded inline and a server-side file browser. Refactored shared `run_full_pipeline` / `run_batch` into `pipeline.py` so CLI, GUI, and web app share one code path. |
 
 ---
 

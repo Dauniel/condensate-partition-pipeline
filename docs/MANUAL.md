@@ -4,8 +4,9 @@
 Author: Daniel Chang · Principal Investigator: Elisa Franco
 
 This manual explains how to install, run, and interpret the condensate
-partition-coefficient pipeline using either the **graphical interface (GUI)** or
-the **command line (CLI)**. No coding experience is needed for the GUI path.
+partition-coefficient pipeline using the **web app**, the **graphical interface
+(GUI)**, or the **command line (CLI)**. No coding experience is needed for the
+web app or GUI paths.
 
 ---
 
@@ -14,13 +15,14 @@ the **command line (CLI)**. No coding experience is needed for the GUI path.
 1. [What you need before you start](#1-what-you-need-before-you-start)
 2. [Installation (one time)](#2-installation-one-time)
 3. [Preparing your image files](#3-preparing-your-image-files)
-4. [Running with the GUI](#4-running-with-the-gui)
-5. [Understanding the settings](#5-understanding-the-settings)
-6. [Reading the outputs](#6-reading-the-outputs)
-7. [Batch mode — many cells at once](#7-batch-mode--many-cells-at-once)
-8. [Running from the command line](#8-running-from-the-command-line)
-9. [Troubleshooting](#9-troubleshooting)
-10. [Quick reference card](#10-quick-reference-card)
+4. [Running with the web app](#4-running-with-the-web-app)
+5. [Running with the GUI](#5-running-with-the-gui)
+6. [Understanding the settings](#6-understanding-the-settings)
+7. [Reading the outputs](#7-reading-the-outputs)
+8. [Batch mode — many cells at once](#8-batch-mode--many-cells-at-once)
+9. [Running from the command line](#9-running-from-the-command-line)
+10. [Troubleshooting](#10-troubleshooting)
+11. [Quick reference card](#11-quick-reference-card)
 
 ---
 
@@ -58,7 +60,7 @@ pip install -r requirements.txt
 The first time you run the pipeline, Cellpose downloads its AI model weights
 automatically (a one-time ~100 MB download). After that it works offline.
 
-**Verify it works** by running the bundled sample (see section 8). If you get a
+**Verify it works** by running the bundled sample (see section 9). If you get a
 partition coefficient near **4.8**, your installation is correct.
 
 ---
@@ -78,7 +80,48 @@ but if results look wrong, the most common cause is swapped channels.
 
 ---
 
-## 4. Running with the GUI
+## 4. Running with the web app
+
+The web app is the most integrated way to use the pipeline: you **configure,
+run, and view results in a single browser page**, for both single cells and
+whole batches. Launch it:
+
+```bash
+python webapp.py
+```
+
+It prints a link and opens `http://127.0.0.1:5000` automatically. The page has
+two halves: a **configuration panel** on the left and a **viewer panel** on the
+right.
+
+### Single cell
+
+1. Under **Input**, choose **Single multi-channel TIF** (or separate channels /
+   single-channel). Click **Browse** to pick your file — this opens an in-app
+   file browser that navigates your computer's folders (no uploading).
+2. Set an **Output folder** (defaults to `outputs/web_run`).
+3. In **Settings**, set **Construct = JABr**.
+4. Click **▶ Run Pipeline**. The **Output log** streams live progress, and the
+   status line shows the final PC.
+5. When it finishes, the interactive **Z-viewer loads in the right panel** — the
+   same viewer described in [section 7](#7-reading-the-outputs), embedded in the
+   page. Scroll slices with the slider or arrow keys.
+
+### Batch (a folder of cells)
+
+1. Choose the **Batch — a folder of TIFs** input mode.
+2. **Browse** to the folder of `.tif` files. Optionally pick a **Reference CSV**
+   (manual Imaris nuclear PCs) to also get correlation metrics.
+3. Run. Each cell becomes a **clickable chip** above the viewer showing its
+   calibrated PC; click a chip to load that cell's Z-viewer in the panel. If a
+   reference CSV was supplied, the **r / RMSE / MAE** metrics appear on the right.
+
+> The web app currently covers everything the GUI does. The Tkinter GUI
+> (next section) remains available if you prefer a native desktop window.
+
+---
+
+## 5. Running with the GUI
 
 Launch it:
 
@@ -101,7 +144,7 @@ and **Batch**.
    - **"Separate condensate + nuclei files"** and select each file.
 3. Under **Output**, pick a folder for the results (optional — defaults to
    `outputs/`).
-4. In the **Settings** card, set **Construct = JABr** (see section 5 for what
+4. In the **Settings** card, set **Construct = JABr** (see section 6 for what
    each setting does). For JABr, leave everything else at its default.
 5. Click **▶ Run Pipeline**. The right-hand **Output Log** shows live progress
    through the 6 steps. The status turns **"Done ✓"** when finished.
@@ -132,7 +175,7 @@ channel.
 
 ---
 
-## 5. Understanding the settings
+## 6. Understanding the settings
 
 The **Settings** card controls how the pipeline runs. For routine JABr analysis
 you only need to set **Construct**; the rest have sensible defaults.
@@ -146,19 +189,21 @@ you only need to set **Construct**; the rest have sensible defaults.
 | **blob_log threshold** | `0.03` | Sensitivity of condensate spot detection (only used when detector = `blob_log`). Lower finds dimmer spots; higher is stricter. **Leave at 0.03 for JABr.** |
 | **Cellpose cond. model path** | *(blank)* | Advanced: a fine-tuned Cellpose model for condensates. Leave blank to use the built-in model. Not needed for JABr. |
 | **Disable GPU** | off | Tick this on a laptop with no NVIDIA GPU. |
+| **Write interactive Z-viewer** | on | Writes a self-contained `zviewer.html` you can open in any browser to scroll through the Z-stack (see section 6). Untick to skip it (slightly faster). |
 
 > **The one rule for routine use:** set **Construct = JABr** and run. Everything
 > else is for experimentation or other constructs.
 
 ---
 
-## 6. Reading the outputs
+## 7. Reading the outputs
 
 Every run writes these files to your output folder:
 
 | File | What it contains |
 |---|---|
 | **`summary.csv`** | The headline numbers: partition coefficient, background, condensed & dilute density, object counts, and the **calibrated PC**. |
+| **`zviewer.html`** | An interactive Z-stack viewer you can open in any browser (see below). Written by default; controlled by the **Write interactive Z-viewer** checkbox (GUI) or `--view` (CLI). |
 | `results.png` | A one-page summary figure (PC scorecard + size/intensity/volume histograms). |
 | `condensate_masks.tif` | 3D labeled condensate mask — **open this in Fiji/ImageJ over your raw image to sanity-check detection.** |
 | `nuclei_masks.tif` | 3D labeled nuclei mask. |
@@ -189,9 +234,40 @@ Here is the actual `results.png` from that run:
 
 ![Example results](../sample_data/example_output/results.png)
 
+### The interactive Z-viewer (`zviewer.html`)
+
+The fastest way to sanity-check a run is `zviewer.html`. **Double-click it** to
+open in any web browser — it is fully self-contained (no Python, no internet),
+so you can also email it or drop it in a shared folder for someone else to look
+at. Drag the slider or use the **← / →** arrow keys to move through Z-slices.
+
+It shows, for the current slice, four side-by-side panels:
+
+1. **Raw** — the two channels merged (nuclei = blue, condensate = green).
+2. **Masks on raw** — the same image dimmed, with mask outlines drawn on top
+   (nuclei = magenta, condensate = yellow). This is the panel to watch: it shows
+   whether the segmentation actually tracks the real signal.
+3. **Condensate mask** — the condensate detection alone.
+4. **Nuclei mask** — the nuclei segmentation alone.
+
+Alongside the panels it reports:
+
+- **Partition Coefficient** — the headline calibrated value (with the raw value
+  and construct underneath).
+- **Stack summary** — cytoplasmic PC, condensed/dilute density, background,
+  total condensate and nuclei object counts, and image dimensions.
+- **This slice** — per-slice condensate/nuclei counts, mask areas, and mean
+  intensities, updating as you scroll.
+- **Two intensity histograms** — the distribution of in-mask pixel intensity for
+  the current slice (updates live) and for the whole stack (fixed), on shared
+  bins so they are directly comparable.
+
+In **batch** mode, each cell gets its own `zviewer.html` inside that cell's
+output subfolder.
+
 ---
 
-## 7. Batch mode — many cells at once
+## 8. Batch mode — many cells at once
 
 To process a whole folder of cells:
 
@@ -203,12 +279,12 @@ To process a whole folder of cells:
 4. **Output** → pick a folder.
 5. Set **Construct = JABr** in Settings, then **▶ Run Pipeline**.
 
-Each cell gets its own subfolder of outputs, plus a top-level `comparison.csv`
-summarizing every cell.
+Each cell gets its own subfolder of outputs (including its own `zviewer.html`),
+plus a top-level `comparison.csv` summarizing every cell.
 
 ---
 
-## 8. Running from the command line
+## 9. Running from the command line
 
 The CLI does the same thing, scriptably. Minimal command:
 
@@ -239,14 +315,16 @@ Useful options (run `python pipeline.py -h` for the full list):
 | `--construct JABr` | Selects detector + calibration. |
 | `--output DIR` | Where to save results. |
 | `--voxel-xy 0.065 --voxel-z 0.3` | Physical voxel size, so volumes are reported in µm³. |
+| `--view` | Also write the interactive `zviewer.html` (scroll the Z-stack in a browser). |
+| `--nuc-close N` | *Advanced/experimental.* Per-slice morphological closing on nuclei before hole-filling, to seal open "bays" the condensates carve. Default `0` (off). Changes the masks and would require re-calibration — leave off for validated JABr work. |
 | `--no-gpu` | Force CPU (laptop / no CUDA). |
 
 For processing many files (and optionally comparing against a manual reference
-CSV), use the **Batch** tab of the GUI — see [section 7](#7-batch-mode--many-cells-at-once).
+CSV), use the **Batch** tab of the GUI — see [section 8](#8-batch-mode--many-cells-at-once).
 
 ---
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
 | Symptom | Likely cause / fix |
 |---|---|
@@ -259,14 +337,15 @@ CSV), use the **Batch** tab of the GUI — see [section 7](#7-batch-mode--many-c
 
 ---
 
-## 10. Quick reference card
+## 11. Quick reference card
 
 ```
+Web app:       python webapp.py        (opens http://127.0.0.1:5000)
 GUI:           python run_gui.py
 CLI (sample):  python pipeline.py --roi sample_data/JABr_Sample2_5_3.tif --construct JABr --output out
 For JABr:      Construct = JABr   (everything else default)
 Report:        the CALIBRATED nuclear PC from summary.csv
-Always:        open condensate_masks.tif over the raw image to verify
+Verify:        open zviewer.html in a browser, or condensate_masks.tif over the raw image
 Validated:     JABr, r = 0.942, MAE 12.9%, 79% of cells within +/-20%
 ```
 

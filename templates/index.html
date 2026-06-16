@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Condensate Partition Pipeline</title>
+<style>
+  :root { --accent:#3ad07a; --blue:#4a9eff; --bg:#0e0e12; --card:#16161d;
+          --line:#2a2a33; --muted:#8a8a99; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 0;
+         background: var(--bg); color: #eee; height: 100vh; display: flex;
+         flex-direction: column; }
+  header { padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--line);
+           display: flex; align-items: baseline; gap: 12px; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .sub { font-size: 12px; color: var(--muted); }
+  .layout { flex: 1; display: flex; min-height: 0; }
+  .panel { padding: 16px; overflow-y: auto; }
+  .config { flex: 0 0 340px; border-right: 1px solid var(--line); }
+  .viewer { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+          padding: 14px; margin-bottom: 14px; }
+  .card h2 { margin: 0 0 10px; font-size: 11px; letter-spacing: .06em;
+             text-transform: uppercase; color: var(--muted); }
+  label.row { display: block; font-size: 13px; margin: 8px 0 3px; color: #cdd; }
+  input[type=text], select { width: 100%; padding: 6px 8px; background: #0e0e14;
+        border: 1px solid var(--line); border-radius: 6px; color: #eee; font-size: 13px; }
+  .inline { display: flex; gap: 6px; }
+  .inline input { flex: 1; }
+  .radio { font-size: 13px; margin: 4px 0; display: block; cursor: pointer; }
+  button { background: var(--blue); color: #fff; border: 0; border-radius: 7px;
+           padding: 9px 14px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  button.ghost { background: #23232c; color: #cdd; padding: 6px 10px; font-size: 12px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .run-btn { width: 100%; margin-top: 6px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #log { background: #0a0a10; border: 1px solid var(--line); border-radius: 8px;
+         font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; color: #b9c;
+         padding: 8px; height: 180px; overflow-y: auto; white-space: pre-wrap; }
+  #status { font-size: 13px; margin: 8px 0; min-height: 18px; }
+  .ok { color: var(--accent); } .err { color: #ff6b6b; } .busy { color: var(--blue); }
+  iframe { flex: 1; border: 0; width: 100%; background: var(--bg); }
+  .placeholder { flex: 1; display: flex; align-items: center; justify-content: center;
+                 color: var(--muted); font-size: 14px; text-align: center; padding: 40px; }
+  #batchBar { padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--card);
+              display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  #batchBar .metrics { font-size: 12px; color: var(--muted); margin-left: auto; }
+  .chip { font-size: 12px; padding: 5px 10px; border-radius: 16px; cursor: pointer;
+          border: 1px solid var(--line); background: #0e0e14; color: #cdd; }
+  .chip:hover { border-color: var(--blue); }
+  .chip.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .chip.err { color: #ff6b6b; cursor: default; border-color: #5a2a2a; }
+  .chip .pc { color: var(--accent); font-weight: 600; }
+  .chip.active .pc { color: #fff; }
+</style></head>
+<body>
+<header>
+  <h1>Condensate Partition Pipeline</h1>
+  <span class="sub">Franco Lab · UCLA — configure, run, and view in one place</span>
+</header>
+
+<div class="layout">
+  <!-- ── Config panel ─────────────────────────────────────────────── -->
+  <div class="panel config">
+    <div class="card">
+      <h2>Input</h2>
+      <label class="radio"><input type="radio" name="mode" value="roi" checked> Single multi-channel TIF</label>
+      <label class="radio"><input type="radio" name="mode" value="separate"> Separate condensate + nuclei files</label>
+      <label class="radio"><input type="radio" name="mode" value="single"> Single channel (one image, no PC)</label>
+      <label class="radio"><input type="radio" name="mode" value="batch"> Batch — a folder of TIFs</label>
+
+      <div id="grp-roi" class="grp">
+        <label class="row">TIF file</label>
+        <div class="inline"><input type="text" id="path"><button class="ghost" onclick="pick('path')">Browse</button></div>
+      </div>
+      <div id="grp-separate" class="grp" style="display:none">
+        <label class="row">Condensate file</label>
+        <div class="inline"><input type="text" id="cond"><button class="ghost" onclick="pick('cond')">Browse</button></div>
+        <label class="row">Nuclei file</label>
+        <div class="inline"><input type="text" id="nuc"><button class="ghost" onclick="pick('nuc')">Browse</button></div>
+      </div>
+      <div id="grp-single" class="grp" style="display:none">
+        <label class="row">Image file</label>
+        <div class="inline"><input type="text" id="spath" oninput="document.getElementById('path').value=this.value"><button class="ghost" onclick="pick('spath')">Browse</button></div>
+        <label class="row">This image is</label>
+        <select id="channel"><option value="condensate">condensate</option><option value="nuclei">nuclei</option></select>
+      </div>
+      <div id="grp-batch" class="grp" style="display:none">
+        <label class="row">Folder of TIFs</label>
+        <div class="inline"><input type="text" id="folder"><button class="ghost" onclick="pick('folder','folder')">Browse</button></div>
+        <label class="row">Reference CSV (optional)</label>
+        <div class="inline"><input type="text" id="ref_csv"><button class="ghost" onclick="pick('ref_csv','csv')">Browse</button></div>
+      </div>
+
+      <label class="row">Output folder</label>
+      <input type="text" id="output" value="outputs/web_run">
+    </div>
+
+    <div class="card">
+      <h2>Settings</h2>
+      <label class="row">Construct</label>
+      <select id="construct">
+        <option value="">(none)</option>
+        <option value="JABr" selected>JABr</option>
+        <option value="GABr">GABr</option>
+        <option value="JABr_4arm">JABr_4arm</option>
+        <option value="Tornado">Tornado</option>
+      </select>
+      <div class="grid2">
+        <div><label class="row">Detector</label>
+          <select id="detector"><option value="auto" selected>auto</option><option value="blob_log">blob_log</option><option value="cellpose">cellpose</option></select></div>
+        <div><label class="row">Top-X %</label><input type="text" id="topx" value="75"></div>
+        <div><label class="row">Nuclei cellprob</label><input type="text" id="cellprob" value="-2.0"></div>
+        <div><label class="row">blob_log thresh</label><input type="text" id="blob_thresh" value="0.03"></div>
+      </div>
+      <label class="radio" style="margin-top:8px"><input type="checkbox" id="no_gpu"> Disable GPU</label>
+      <label class="radio"><input type="checkbox" id="view" checked> Build interactive Z-viewer</label>
+    </div>
+
+    <button class="run-btn" id="runBtn" onclick="run()">▶ Run Pipeline</button>
+    <div id="status"></div>
+    <div class="card"><h2>Output log</h2><div id="log"></div></div>
+  </div>
+
+  <!-- ── Viewer panel ─────────────────────────────────────────────── -->
+  <div class="panel viewer">
+    <div class="placeholder" id="placeholder">
+      The interactive Z-viewer will appear here after a run completes.
+    </div>
+    <div id="batchBar" style="display:none"></div>
+    <iframe id="viewer" style="display:none"></iframe>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  // input-mode toggle
+  document.querySelectorAll('input[name=mode]').forEach(r =>
+    r.addEventListener('change', () => {
+      const m = document.querySelector('input[name=mode]:checked').value;
+      $('grp-roi').style.display      = m === 'roi'      ? '' : 'none';
+      $('grp-separate').style.display = m === 'separate' ? '' : 'none';
+      $('grp-single').style.display   = m === 'single'   ? '' : 'none';
+      $('grp-batch').style.display    = m === 'batch'    ? '' : 'none';
+    }));
+
+  // ── file picker (native OS dialog via the local server) ──
+  function pick(target, kind) {
+    fetch('/api/native-pick?kind=' + (kind || 'file')).then(r => r.json()).then(d => {
+      if (!d.path) return;                 // user cancelled
+      $(target).value = d.path;
+      if (target === 'spath') $('path').value = d.path;
+    });
+  }
+
+  // ── run ──
+  let poll = null;
+  function run() {
+    const mode = document.querySelector('input[name=mode]:checked').value;
+    const cfg = {
+      mode,
+      path: mode === 'single' ? $('spath').value : $('path').value,
+      cond: $('cond').value, nuc: $('nuc').value,
+      folder: $('folder').value, ref_csv: $('ref_csv').value,
+      channel: $('channel').value,
+      output: $('output').value,
+      construct: $('construct').value, detector: $('detector').value,
+      topx: $('topx').value, cellprob: $('cellprob').value,
+      blob_thresh: $('blob_thresh').value,
+      no_gpu: $('no_gpu').checked, view: $('view').checked,
+    };
+    setStatus('Starting…', 'busy');
+    $('runBtn').disabled = true;
+    $('viewer').style.display = 'none';
+    $('batchBar').style.display = 'none';
+    $('placeholder').style.display = 'flex';
+    fetch('/api/run', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                       body: JSON.stringify(cfg)})
+      .then(r => r.json().then(d => ({ok: r.ok, d})))
+      .then(({ok, d}) => {
+        if (!ok) { setStatus(d.error || 'Failed to start', 'err'); $('runBtn').disabled = false; return; }
+        poll = setInterval(status, 600);
+      });
+  }
+
+  function status() {
+    fetch('/api/status').then(r => r.json()).then(d => {
+      $('log').textContent = d.log.join('\n');
+      $('log').scrollTop = $('log').scrollHeight;
+      if (d.running) { setStatus('Running…', 'busy'); return; }
+      clearInterval(poll); $('runBtn').disabled = false;
+      if (d.error) { setStatus('Error — see log', 'err'); return; }
+      let msg = 'Done ✓';
+      if (d.summary && d.summary.pc != null) {
+        const v = d.summary.pc_calibrated != null ? d.summary.pc_calibrated : d.summary.pc;
+        msg += '  PC = ' + (+v).toFixed(3);
+      }
+      if (d.batch) { renderBatch(d.batch); return; }
+      setStatus(msg, 'ok');
+      if (d.viewer_url) {
+        $('viewer').src = d.viewer_url + '?t=' + Date.now();
+        $('viewer').style.display = 'block';
+        $('placeholder').style.display = 'none';
+      } else {
+        $('placeholder').textContent = 'Run complete. (Single-channel mode has no Z-viewer.)';
+      }
+    });
+  }
+
+  function renderBatch(b) {
+    const ok = b.cells.filter(c => c.ok).length;
+    setStatus(`Done ✓  ${ok}/${b.n} cells`, 'ok');
+    const bar = $('batchBar'); bar.innerHTML = ''; bar.style.display = 'flex';
+    b.cells.forEach((c, i) => {
+      const chip = document.createElement('div');
+      if (c.error) {
+        chip.className = 'chip err'; chip.textContent = c.name + ' ✕'; chip.title = c.error;
+      } else {
+        const v = c.pc_calibrated != null ? c.pc_calibrated : c.pc;
+        chip.className = 'chip';
+        chip.innerHTML = c.name + ' <span class="pc">' + (+v).toFixed(2) + '</span>';
+        if (c.viewer_url) chip.onclick = () => {
+          document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+          chip.classList.add('active');
+          $('viewer').src = c.viewer_url + '?t=' + Date.now();
+          $('viewer').style.display = 'block';
+          $('placeholder').style.display = 'none';
+        };
+      }
+      bar.appendChild(chip);
+    });
+    if (b.r != null) {
+      const m = document.createElement('div'); m.className = 'metrics';
+      m.textContent = `r = ${b.r}  ·  RMSE = ${b.rmse}  ·  MAE = ${b.mae}%`;
+      bar.appendChild(m);
+    }
+    // Auto-open the first cell that has a viewer.
+    const first = b.cells.find(c => c.viewer_url);
+    if (first) { bar.querySelectorAll('.chip')[b.cells.indexOf(first)].click(); }
+    else { $('placeholder').textContent = 'Batch complete. (Z-viewer was disabled.)'; }
+  }
+  function setStatus(t, cls) { const s = $('status'); s.textContent = t; s.className = cls; }
+</script>
+</body></html>

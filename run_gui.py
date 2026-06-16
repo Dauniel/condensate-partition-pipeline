@@ -14,38 +14,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 
-# ── Batch helper ────────────────────────────────────────────────────────────────
-
-def max_overlap_nucleus(nuc_masks, cond_masks):
-    """Keep only the nucleus with the most condensate-mask overlap.
-
-    The "target cell" is the one Imaris's manual analysis was done on — almost
-    always the cell containing the visible condensates. Picking the nucleus with
-    the largest cond ∩ nuc voxel count selects that cell directly, regardless of
-    where it sits in the cropped FOV. More robust than a centroid heuristic on
-    wide multi-cell fields where the target cell isn't centered.
-    """
-    import numpy as np
-    if nuc_masks.max() == 0:
-        return nuc_masks
-    cond_3d = cond_masks > 0
-    labels = np.unique(nuc_masks)
-    labels = labels[labels > 0]
-    best_label, best_overlap = None, -1
-    for lbl in labels:
-        overlap = int(((nuc_masks == lbl) & cond_3d).sum())
-        if overlap > best_overlap:
-            best_overlap, best_label = overlap, int(lbl)
-    out = np.zeros_like(nuc_masks)
-    if best_label is not None and best_overlap > 0:
-        out[nuc_masks == best_label] = 1
-        print(f"    target nucleus: label {best_label}  ({best_overlap} cond voxels overlap)")
-    else:
-        print("    no nucleus has condensate overlap — keeping all nuclei")
-        out = (nuc_masks > 0).astype(nuc_masks.dtype)
-    return out
-
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def browse_file(entry, title="Select file", parent=None):
@@ -175,6 +143,11 @@ class PipelineGUI:
         ttk.Checkbutton(card_set, text="Disable GPU  (use on laptop / no CUDA)",
                         variable=self.gpu_var).grid(row=7, column=0, columnspan=3,
                                                     sticky="w", pady=(6, 0))
+
+        self.view_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(card_set, text="Write interactive Z-viewer (zviewer.html)",
+                        variable=self.view_var).grid(row=8, column=0, columnspan=3,
+                                                     sticky="w", pady=(2, 0))
 
         # ── Run button + status ───────────────────────────────────────────────
         btn_frame = ttk.Frame(outer, style="TFrame")
@@ -348,7 +321,8 @@ class PipelineGUI:
 
         cfg = dict(topx=topx, cellprob=cellprob, no_gpu=no_gpu,
                    construct=construct, detector=detector,
-                   cond_model=cond_model, blob_thresh=blob_thresh)
+                   cond_model=cond_model, blob_thresh=blob_thresh,
+                   view=self.view_var.get())
 
         # Detect active tab
         active = self.root.nametowidget(
@@ -558,6 +532,12 @@ class PipelineGUI:
                          cond_df, nuc_df, cond_vol_df, nuc_vol_df,
                          pc, None, None)
             plot_summary(output_dir, cond_df, nuc_df, cond_vol_df, nuc_vol_df, pc)
+            if cfg.get("view"):
+                from pipeline import write_zviewer
+                self._log("\nBuilding interactive Z-viewer (zviewer.html)...")
+                write_zviewer(output_dir, cond_stack, nuc_stack, cond_masks_3d, nuc_masks_3d,
+                              pc_result=pc)
+                self._log(f"  Open {output_dir / 'zviewer.html'} in any browser.")
             self._log(f"\nAll outputs saved to: {output_dir}")
 
     # ── Batch run ─────────────────────────────────────────────────────────────
@@ -573,9 +553,7 @@ class PipelineGUI:
 
     def _worker_batch(self, folder, ref_csv, out, cfg):
         import io, contextlib
-        import pandas as pd
-        import matplotlib.pyplot as plt
-        import numpy as np
+        from types import SimpleNamespace
 
         class LogWriter(io.TextIOBase):
             def __init__(self, gui): self.gui = gui
@@ -586,145 +564,21 @@ class PipelineGUI:
         import matplotlib
         matplotlib.use("Agg")
         with contextlib.redirect_stdout(LogWriter(self)):
-            from pipeline import (
-                load_stacks, denoise_stack, segment_condensates,
-                segment_nuclei, detect_condensates_blob, detect_condensates_blob_both,
-                extract_slice_measurements,
-                compute_volumes, compute_partition_coefficient,
-                compute_cytoplasmic_partition_coefficient,
-                save_outputs, apply_calibration,
-            )
-            from cellpose import models, core, denoise as cp_denoise
+            from pipeline import run_batch
+            from cellpose import core
 
             output_dir = Path(out) if out else Path(__file__).parent / "outputs" / "batch"
-            output_dir.mkdir(parents=True, exist_ok=True)
-
-            tif_files = sorted(Path(folder).glob("*.tif")) + sorted(Path(folder).glob("*.tiff"))
-            if not tif_files:
-                self._log("No .tif files found in the selected folder.")
-                return
-
-            self._log(f"Found {len(tif_files)} TIF files in {folder}")
-            self._log(f"Construct: {cfg['construct'] or '(none)'}    Detector: {cfg['detector']}")
-
             use_gpu = core.use_gpu() and not cfg["no_gpu"]
-            self._log(f"GPU: {'enabled' if use_gpu else 'disabled'}\n")
 
-            # Load models once
-            dn_model      = cp_denoise.DenoiseModel(model_type="denoise_cyto3", gpu=use_gpu)
-            nuc_seg_model = models.CellposeModel(gpu=use_gpu, model_type="cyto3")
-            cond_seg_model = None
-            if cfg["detector"] == "cellpose":
-                if cfg["cond_model"]:
-                    cond_seg_model = models.CellposeModel(gpu=use_gpu, pretrained_model=cfg["cond_model"])
-                else:
-                    cond_seg_model = nuc_seg_model
-
-            # Load reference CSV if provided
-            ref_df = None
-            if ref_csv:
-                ref_df = pd.read_csv(ref_csv)
-                # Normalise filename column
-                name_col = ref_df.columns[0]
-                ref_df["_stem"] = ref_df[name_col].apply(lambda x: Path(x).stem)
-                pc_col = [c for c in ref_df.columns if "partition" in c.lower()][0]
-
-            results = []
-
-            for i, tif_path in enumerate(tif_files, 1):
-                self._log(f"─── [{i}/{len(tif_files)}] {tif_path.name}")
-                cell_dir = output_dir / tif_path.stem
-                cell_dir.mkdir(exist_ok=True)
-
-                try:
-                    cond_stack, nuc_stack = load_stacks(None, None, tif_path)
-
-                    cond_restored = denoise_stack(cond_stack, dn_model, "condensates")
-                    nuc_restored  = denoise_stack(nuc_stack,  dn_model, "nuclei")
-
-                    nuc_masks_3d = segment_nuclei(nuc_restored, nuc_seg_model, None, cfg["cellprob"])
-
-                    cyto_cond_masks_3d = None
-                    if cfg["detector"] == "blob_log":
-                        cond_masks_3d, cyto_cond_masks_3d = detect_condensates_blob_both(
-                            cond_stack, nuc_masks_3d > 0,
-                            threshold=cfg["blob_thresh"], min_sigma=1.5, max_sigma=6.0, num_sigma=8,
-                        )
-                    else:
-                        all_cond_masks_3d = segment_condensates(cond_restored, cond_seg_model, None)
-                        nuc_3d_bool = nuc_masks_3d > 0
-                        cond_masks_3d = (all_cond_masks_3d * nuc_3d_bool).astype(np.int32)
-                        cyto_cond_masks_3d = (all_cond_masks_3d * (~nuc_3d_bool)).astype(np.int32)
-
-                    nuc_single = max_overlap_nucleus(nuc_masks_3d, cond_masks_3d)
-
-                    pc = compute_partition_coefficient(
-                        cond_stack, cond_masks_3d, nuc_single, cond_topx=cfg["topx"])
-                    pc_cal, was_cal = apply_calibration(pc["pc"], cfg["construct"])
-                    pc_cyto = compute_cytoplasmic_partition_coefficient(
-                        cond_stack, cyto_cond_masks_3d, nuc_masks_3d, cond_topx=cfg["topx"])
-
-                    row = {"file": tif_path.name,
-                           "pipeline_pc_nuclear": round(pc["pc"], 4),
-                           "pipeline_pc_cytoplasmic": (round(pc_cyto["pc"], 4)
-                                                       if not np.isnan(pc_cyto["pc"]) else None)}
-                    if was_cal:
-                        row["pipeline_pc_nuclear_calibrated"] = round(pc_cal, 4)
-                    if ref_df is not None:
-                        match = ref_df[ref_df["_stem"] == tif_path.stem]
-                        if not match.empty:
-                            ref_val = float(match.iloc[0][pc_col])
-                            row["reference_pc"] = round(ref_val, 4)
-                            row["error_pct_raw"] = round((pc["pc"] - ref_val) / ref_val * 100, 1)
-                            if was_cal:
-                                row["error_pct_calibrated"] = round((pc_cal - ref_val) / ref_val * 100, 1)
-                    results.append(row)
-                    msg = f"    nuc PC raw = {pc['pc']:.3f}"
-                    if was_cal:
-                        msg += f"  cal = {pc_cal:.3f}"
-                    if not np.isnan(pc_cyto["pc"]):
-                        msg += f"   cyto PC = {pc_cyto['pc']:.3f}"
-                    if ref_df is not None and "reference_pc" in row:
-                        msg += f"  ref = {row['reference_pc']}"
-                        if was_cal:
-                            msg += f"  |err_cal| = {abs(row['error_pct_calibrated'])}%"
-                        else:
-                            msg += f"  |err_raw| = {abs(row['error_pct_raw'])}%"
-                    self._log(msg)
-
-                except Exception as e:
-                    self._log(f"    ERROR: {e}")
-                    results.append({"file": tif_path.name, "pipeline_pc_nuclear": float("nan"), "error": str(e)})
-
-            # Save results
-            results_df = pd.DataFrame(results)
-            results_df.to_csv(output_dir / "comparison.csv", index=False)
-            self._log(f"\nSaved comparison.csv → {output_dir}")
-
-            # Scatter plot if reference available — prefer calibrated y if present
-            if ref_df is not None and "reference_pc" in results_df.columns:
-                y_col = ("pipeline_pc_nuclear_calibrated" if "pipeline_pc_nuclear_calibrated" in results_df.columns
-                         else "pipeline_pc_nuclear")
-                valid = results_df.dropna(subset=["reference_pc", y_col])
-                if len(valid) > 1:
-                    r = np.corrcoef(valid["reference_pc"], valid[y_col])[0, 1]
-                    rmse = float(np.sqrt(((valid[y_col] - valid["reference_pc"])**2).mean()))
-                    mae_pct = float((abs(valid[y_col] - valid["reference_pc"]) / valid["reference_pc"]).mean() * 100)
-                    fig, ax = plt.subplots(figsize=(5, 5))
-                    ax.scatter(valid["reference_pc"], valid[y_col],
-                               color="#1A73E8", alpha=0.8, edgecolors="white", s=60)
-                    lim = max(valid["reference_pc"].max(), valid[y_col].max()) * 1.1
-                    ax.plot([0, lim], [0, lim], "k--", lw=0.8, alpha=0.5)
-                    y_label = "Pipeline PC (calibrated)" if y_col == "pipeline_pc_calibrated" else "Pipeline PC (raw)"
-                    ax.set_xlabel("Reference PC"); ax.set_ylabel(y_label)
-                    ax.set_title(f"r = {r:.3f}  |  RMSE = {rmse:.3f}  |  MAE = {mae_pct:.1f}%")
-                    ax.set_xlim(0, lim); ax.set_ylim(0, lim)
-                    plt.tight_layout()
-                    plt.savefig(output_dir / "scatter.png", dpi=150)
-                    plt.close()
-                    self._log(f"Saved scatter.png  (r={r:.3f}, RMSE={rmse:.3f}, MAE={mae_pct:.1f}%)")
-
-            self._log(f"\nAll outputs saved to: {output_dir}")
+            args = SimpleNamespace(
+                construct=cfg["construct"] or None, detector=cfg["detector"],
+                cond_topx=cfg["topx"], nuc_cellprob=cfg["cellprob"],
+                nuc_diameter=None, nuc_close=0,
+                blob_threshold=cfg["blob_thresh"], min_sigma=1.5, max_sigma=6.0, num_sigma=8,
+                diameter=None, cond_model=cfg["cond_model"], cond_cellprob=0.0,
+                voxel_xy=None, voxel_z=None, view=cfg.get("view", True),
+            )
+            run_batch(folder, output_dir, args, use_gpu, ref_csv=ref_csv)
 
     # ── Worker harness ────────────────────────────────────────────────────────
 

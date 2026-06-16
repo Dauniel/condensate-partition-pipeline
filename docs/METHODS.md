@@ -45,6 +45,15 @@ Both densities are background-subtracted; the PC is their ratio.
 | **2. Segment nuclei** | Cellpose 3 `cyto3`, `do_3D=True` | Native 3D nuclear segmentation. |
 | **2b. Clean nuclei** | Connected-component relabel; drop fragments < 1000 voxels | Cellpose over-splits large nuclei around internal condensate texture; relabeling restores whole nuclei without changing pixel coverage. |
 | **2c. Fill voids** | Per-nucleus `binary_fill_holes` (3D + per-slice 2D) | Condensates exclude the nuclear stain, so Cellpose carves "donut holes" exactly where nuclear condensates sit. Filling them makes those condensates count as intra-nuclear. |
+
+> **A note on "open bays."** `binary_fill_holes` only fills regions *fully
+> enclosed* by the mask. Where Cellpose's nuclear boundary is notched open to the
+> exterior (a bay, not a closed ring), the void is not filled — by definition.
+> Adding a morphological **closing** before the fill (exposed as `--nuc-close N`,
+> default **off**) can seal *narrow* openings, but on the validated JABr sample it
+> did not close the wide notches that actually occur, shifted the raw PC by
+> ~+0.06, and would invalidate the existing calibration. It is therefore left off
+> by default and provided only as an experimental knob.
 | **3. Detect condensates** | `blob_log` (Laplacian-of-Gaussian), σ = 1.5–6.0, threshold 0.03 | LoG is a classical, parameter-light blob detector well-matched to roughly-spherical condensates. Each detection is rendered as a sphere of radius σ·√3. |
 | **3b. Intra-nuclear gate** | Keep a blob if **≥ 50 %** of its sphere lies inside a nucleus | Replaces an older single-centroid test that rejected boundary condensates and misassigned cells in crowded fields. Validated on JABr: r 0.926 → **0.942**, MAE 14.6 % → **13.7 %**. |
 | **4–5. Measure** | `regionprops`, voxel counting | Per-object area, intensity, and 3D volume. |

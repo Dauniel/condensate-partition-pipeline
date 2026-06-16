@@ -43,6 +43,9 @@ Nuclei stack     : (47, 161, 176)  dtype=uint16
              Cond density   : 319.46
              Dilute density : 65.64
              PC calibrated  : 4.813   (JABr)
+
+Building interactive Z-viewer (zviewer.html)...
+  Open my_output/zviewer.html in any browser.
 All outputs saved to: my_output
 """
 
