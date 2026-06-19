@@ -593,7 +593,6 @@ def save_outputs(
 
 _COND_COLOR = "#2e8b57"   # green for condensates
 _NUC_COLOR  = "#4169e1"   # blue for nuclei
-_REFERENCE  = 6.32
 
 
 def plot_summary(
@@ -632,15 +631,11 @@ def plot_summary(
                ha="center", va="center", fontsize=42, fontweight="bold",
                color=_COND_COLOR, transform=ax_pc.transAxes)
 
-    bar = ax_pc.inset_axes([0.05, 0.05, 0.90, 0.32])
-    bar.barh(1, pc_val,     color=_COND_COLOR, height=0.5)
-    bar.barh(0, _REFERENCE, color="#cc3333",   height=0.5)
-    bar.set_yticks([0, 1])
-    bar.set_yticklabels(
-        [f"Reference  {_REFERENCE:.2f}", f"Pipeline  {pc_val:.3f}"],
-        fontsize=8.5,
-    )
-    bar.set_xlim(0, max(pc_val, _REFERENCE) * 1.25)
+    bar = ax_pc.inset_axes([0.05, 0.05, 0.90, 0.20])
+    bar.barh(0, pc_val, color=_COND_COLOR, height=0.5)
+    bar.set_yticks([0])
+    bar.set_yticklabels([f"Pipeline  {pc_val:.3f}"], fontsize=8.5)
+    bar.set_xlim(0, pc_val * 1.25)
     bar.xaxis.set_visible(False)
     bar.spines[["top", "right", "left"]].set_visible(False)
 
